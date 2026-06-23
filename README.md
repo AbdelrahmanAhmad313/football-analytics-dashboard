@@ -179,3 +179,28 @@ Through this project, I gained hands-on experience with:
 * Building reusable data products
 * Sports analytics concepts
 * Git and GitHub workflows
+## Sample Results
+
+### Choices Panel
+
+![Choices Panel](images/Choices panel.png)
+
+### Top Attacking Teams
+
+![Top Attacking Teams](images/Top Attacking Teams.png)
+
+### Top Defensive Teams
+
+![Top Defensive Teams](images/Top Defensive  Teams.png)
+
+### Goal Difference Rankings
+
+![Goal Difference Rankings](images/Top Teams By Goal Difference.png)
+
+### Clean Sheet Rankings
+
+![Clean Sheet Rankings](images/Clean Sheets.png)
+
+### Most Consistent Teams
+
+![Most Consistent Teams](images/Most Consistent Teams.png)
