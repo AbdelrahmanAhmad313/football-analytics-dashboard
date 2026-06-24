@@ -204,3 +204,17 @@ Through this project, I gained hands-on experience with:
 ### Most Consistent Teams
 
 ![Most Consistent Teams](images/Most Consistent Teams.png)
+
+Data Quality Layer
+
+The dashboard validates the engineered dataset before analytics are executed.
+
+Implemented quality checks:
+
+- Missing Value Detection
+- Goal Difference Validation
+- Points Validation
+- Clean Sheet Validation
+- Match Outcome Consistency Validation
+
+If validation fails, the dashboard displays diagnostic information and prevents analytics from running on invalid data.
