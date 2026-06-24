@@ -2,6 +2,7 @@ from data_loader import *
 from cleaner import getTeamMatches
 from analytics import *
 from visualization import addTeamNames
+from quality import runQualityChecks
 
 
 def main():
@@ -9,6 +10,27 @@ def main():
     teams_df = load_teams()
 
     team_matches = getTeamMatches(matches_df)
+    summary_df, all_results = runQualityChecks(team_matches)
+
+    failed_checks = [
+        result
+        for result in all_results
+        if not result["passed"]
+    ]
+
+    if failed_checks:
+
+        print("\nData Quality Checks Failed\n")
+        print(summary_df)
+
+        for result in failed_checks:
+            print(f"\nCheck: {result['check']}")
+            print(f"Reason: {result['reason']}")
+            print(result["sample"])
+
+        return
+
+    print("\nData Quality Checks Passed\n")
 
     menu = {
     1: ("Top Attacking Teams", lambda:getTopAttackingTeams(team_matches)),
@@ -23,19 +45,25 @@ def main():
     10:("Clean Sheet Percentage", lambda:getCleanSheets(team_matches)),
     11:("Home Clean Sheets Percentage",lambda:getVenueCleanSheetPct(team_matches,"home")),
     12:("Away Clean Sheets Percentage", lambda: getVenueCleanSheetPct(team_matches,"away")),
+    13:("Exit", exit)
 }
+    
+    while True:
+        print("=== Football Analytics Dashboard ===")
+        for num, (name, _) in menu.items():
+            print(f"{num}. {name}")
 
-    print("=== Football Analytics Dashboard ===")
-    for num, (name, _) in menu.items():
-        print(f"{num}. {name}")
+        choice = int(input("Choose a metric: "))
+        if choice == 13:
+            print("Goodbye!")
+            break
+        top_n = int(input("Show top N teams: "))
 
-    choice = int(input("Choose a metric: "))
-    top_n = int(input("Show top N teams: "))
-
-    name, func = menu[choice]
-    result=addTeamNames(func(),teams_df).head(top_n)
-    print(f"\n------{name}------\n")
-    print(result)
+        name, func = menu[choice]
+        result=addTeamNames(func(),teams_df).head(top_n)
+        print(f"\n------{name}------\n")
+        print(result)
+        print("\n")
 
 
 if __name__ == "__main__":
