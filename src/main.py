@@ -1,5 +1,5 @@
 from data_loader import *
-from cleaner import getTeamMatches
+from cleaner import buildTeamsMatches
 from analytics import *
 from visualization import addTeamNames
 from quality import runQualityChecks
@@ -9,7 +9,7 @@ def main():
     matches_df = load_matches()
     teams_df = load_teams()
 
-    team_matches = getTeamMatches(matches_df)
+    team_matches = buildTeamsMatches(matches_df)
     summary_df, all_results = runQualityChecks(team_matches)
 
     failed_checks = [
@@ -52,7 +52,7 @@ def main():
         print("=== Football Analytics Dashboard ===")
         for num, (name, _) in menu.items():
             print(f"{num}. {name}")
-
+        # print(team_matches.head())
         choice = int(input("Choose a metric: "))
         if choice == 13:
             print("Goodbye!")

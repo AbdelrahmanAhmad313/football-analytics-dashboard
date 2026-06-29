@@ -24,7 +24,9 @@ SELECT
     home_team_api_id,
     away_team_api_id,
     home_team_goal,
-    away_team_goal
+    away_team_goal,
+    season,
+    stage
 FROM Match
 """
     match_df =pd.read_sql_query(match_query,conn)

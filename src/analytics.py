@@ -21,6 +21,10 @@ def getTopAttackingTeams(team_matches):
 
     return top_attacking_team_df
 
+def getTopAttackingTeamsByAvgGoals(top_attacking):
+
+    return top_attacking.sort_values("avg_goals",ascending= False)
+
 def getTopDefensiveTeams(team_matches):
 
 
@@ -41,6 +45,11 @@ def getTopDefensiveTeams(team_matches):
     
     top_defensive_team_df["avg_goals_conceded"] =(top_defensive_team_df["avg_goals_conceded"].round(2))
     return top_defensive_team_df
+
+def getTopDefensiveTeamsByAvgGoals(top_defensive):
+
+    return top_defensive.sort_values("avg_goals_conceded",ascending=True)
+
 
 def getTopTeamsByGoalDiff(attacking_teams,defensive_teams):
    
@@ -77,13 +86,16 @@ def getTopTeamsByGoalDiff(attacking_teams,defensive_teams):
     return top_teams
 
 
-def getVenuePPG(team_matches,venue):
+def getVenuePPG(team_matches,venue,team_id=None,season=None):
+   
+
     matches_df = team_matches[
     team_matches["venue"] == venue
 ].copy()
     points = f"{venue}_points"
     matches = f"{venue}_matches"
     ppg = f"{venue}_ppg"
+
     ppg_df = (
         matches_df
         .groupby("team_api_id")
@@ -98,7 +110,20 @@ def getVenuePPG(team_matches,venue):
     ppg_df[ppg]=(ppg_df[points]/ppg_df[matches]).round(2)
     ppg_df=(ppg_df.sort_values(ppg,ascending=False))
 
+    if team_id is not None & season is not None:
+        return(
+            team_matches[team_matches["team_api_id"]==team_id]&
+               team_matches[team_matches["season"]==season]
+               )
+    elif team_id is not None:
+        return team_matches[team_matches["team_api_id"]==team_id]
+    elif season is not None:
+        return team_matches[team_matches["season"]==season]
+    
+    
     return ppg_df
+
+
 
 def getMostConsistentTeams(home_ppg_df,away_ppg_df):
 
@@ -195,3 +220,9 @@ def getVenueCleanSheetPct(team_matches,venue):
     ].copy()
     clean_sheets= getCleanSheets(team_clean_sheets)
     return clean_sheets
+
+def getGoalDifferenceByTeamInSeason(team_matches):
+    
+    return team_matches.sort_values("stage")[["team_api_id","goal_diff","stage"]]
+
+
