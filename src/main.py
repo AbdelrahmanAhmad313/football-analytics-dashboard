@@ -1,7 +1,7 @@
 from data_loader import *
 from cleaner import buildTeamsMatches
 from analytics import *
-from visualization import addTeamNames
+from transforms import addTeamNames
 from quality import runQualityChecks
 
 
@@ -33,34 +33,43 @@ def main():
     print("\nData Quality Checks Passed\n")
 
     menu = {
-    1: ("Top Attacking Teams", lambda:getTopAttackingTeams(team_matches)),
-    2: ("Top Defensive Teams", lambda:getTopDefensiveTeams(team_matches)),
-    3:("Top Teams By Goal Difference",lambda:getTopTeamsByGoalDiff(getTopAttackingTeams(team_matches),getTopDefensiveTeams(team_matches))),
-    4:("Home Win Percentage",lambda:getVenuePPG(team_matches,"home")),
-    5:("Away Win Percentage",lambda:getVenuePPG(team_matches,"away")),
-    6:("Most Consistent Team",lambda:getMostConsistentTeams(getVenuePPG(team_matches,"home"),getVenuePPG(team_matches,"away"))),
-    7: ("Win Percentage", lambda: getOutcomePercentage(team_matches, "win")),
-    8: ("Draw Percentage", lambda: getOutcomePercentage(team_matches, "draw")),
-    9: ("Loss Percentage", lambda: getOutcomePercentage(team_matches, "loss")),
-    10:("Clean Sheet Percentage", lambda:getCleanSheets(team_matches)),
-    11:("Home Clean Sheets Percentage",lambda:getVenueCleanSheetPct(team_matches,"home")),
-    12:("Away Clean Sheets Percentage", lambda: getVenueCleanSheetPct(team_matches,"away")),
-    13:("Exit", exit)
+    1: ("Top Attacking Teams","avg_goals"),
+    2: ("Top Defensive Teams", "goals_conceded"),
+    3:("Top Teams By Goal Difference","goal_diff"),
+    4:("Home Win Percentage","home_ppg"),
+    5:("Away Win Percentage","away_ppg"),
+    6:("Most Consistent Team","consistent_teams"),
+    7: ("Win Percentage", "win_pct"),
+    8: ("Draw Percentage","draw_pct"),
+    9: ("Loss Percentage", "loss_pct"),
+    10:("Clean Sheet Percentage", "clean_sheet_pct"),
+    11:("Home Clean Sheets Percentage","home_clean_sheet_pct"),
+    12:("Away Clean Sheets Percentage", "away_clean_sheet_pct"),
+    13:("Teams Goal Consistency", "goal_std"),
+    0:("Exit", exit)
 }
     
     while True:
         print("=== Football Analytics Dashboard ===")
         for num, (name, _) in menu.items():
             print(f"{num}. {name}")
-        # print(team_matches.head())
+        
         choice = int(input("Choose a metric: "))
-        if choice == 13:
+        if choice == 0:
             print("Goodbye!")
             break
-        top_n = int(input("Show top N teams: "))
 
+        top_n = int(input("Show top N teams: "))
+        metric = menu[choice][1]
         name, func = menu[choice]
-        result=addTeamNames(func(),teams_df).head(top_n)
+        result = getTeamMetrics(
+        team_matches,
+        [metric],       
+        sort_by=metric
+        )
+        result = result.head(top_n)
+        result = addTeamNames(result, teams_df)
+        
         print(f"\n------{name}------\n")
         print(result)
         print("\n")

@@ -1,49 +1,13 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from analytics import *
-from cleaner import *
-from data_loader import *
+from chart_utils import *
+from analytics import METRIC_REGISTRY
+from style import *
 
-def addTeamNames(df,teams_df):
-   
-    final_df=pd.merge(
-        df,
-        teams_df,
-        on="team_api_id"
-    )
-    final_df=final_df.rename(
-        columns={
-            "team_long_name":"team_name"
-        }
-    )
-    final_df = final_df.drop(columns=["team_api_id"])
 
-    cols = ["team_name"] + [
-        col for col in final_df.columns
-        if col != "team_name"
-    ]
-
-    return final_df[cols]
-
-secondry_df = buildTeamsMatches(load_matches())
-# secondry_df=secondry_df[
-#     (secondry_df["team_api_id"]==getTeamIDByName(load_teams(),"Real Madrid CF"))&
-#     (secondry_df["season"]=="2011/2012")
-#                         ].sort_values("stage",ascending=True)
-
-df = getTeamMetrics(
-    secondry_df,
-    [
-        "avg_goals",
-        "win_pct"
-    ]
-)
-final_df=addTeamNames(df,load_teams()).head(20)
 
 
 def createTopAttackingTeamsChart(df):
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig , ax = createFigure()
 
 
     BAR_OFFSET = 0.02
@@ -52,9 +16,11 @@ def createTopAttackingTeamsChart(df):
     df["avg_goals"]
 )
 
-    ax.set_xlabel("Average Goals per Match")
-    # plt.ylabel("Team")
-    ax.set_title("Top 10 Teams by Average Goals per Match")
+    ax.set_xlabel("Average Goals per Match",fontsize=LABEL_FONT_SIZE)
+    ax.set_title("Top 10 Teams by Average Goals per Match",
+                    fontsize=TITLE_FONT_SIZE,
+                    fontweight=TITLE_FONT_WEIGHT
+                    )
 
     for bar in bars:
         width = bar.get_width()
@@ -67,13 +33,14 @@ def createTopAttackingTeamsChart(df):
         )
 
     ax.invert_yaxis()
-    ax.grid(axis="x", linestyle="--", alpha=0.4)
+
+    applyChartGrid(ax=ax,axis="x")
 
     fig.tight_layout()
     return fig
 
 def createTeamGoalDifferenceChart(df,team_name):
-    fig, ax = plt.subplots(figsize=(10,6))
+    fig , ax = createFigure()
     POINT_OFFSET= 0.1
     ax.plot(
         df["stage"],
@@ -119,21 +86,24 @@ def createTeamGoalDifferenceChart(df,team_name):
     fontweight="normal"
     )
     
-    ax.set_xlabel("Match Week")
-    ax.set_ylabel("Goal Difference")
-    ax.set_title(f"{team_name} Goal Difference by Match Week (2014/15)")
+    ax.set_xlabel("Match Week",fontsize=LABEL_FONT_SIZE)
+    ax.set_ylabel("Goal Difference",fontsize=LABEL_FONT_SIZE)
+    ax.set_title(f"{team_name} Goal Difference by Match Week (2014/15) ",#TODO make season dynamic
+                    fontsize=TITLE_FONT_SIZE,
+                    fontweight=TITLE_FONT_WEIGHT
+    )
     ax.axhline(y=0,linewidth=1,color="black")
     ax.set_xticks(df["stage"])
 
-    ax.grid(True)
+    applyChartGrid(ax)
 
     fig.tight_layout()
 
     return fig
 
 def createGoalsChart(df):
+    fig , ax = createFigure()
 
-    fig, ax = plt.subplots(figsize=(12, 6))
     highest_goals_scored = df.loc[df["goals_scored"].idxmax()]
     highest_goals_conceded= df.loc[df["goals_conceded"].idxmax()]
     ax.plot(
@@ -189,19 +159,22 @@ def createGoalsChart(df):
     )
    
 
-    ax.set_xlabel("Stages")
-    ax.set_ylabel("Goals")
-    ax.set_title(f"Goals Scored vs Goals Conceded by {df["team_name"].iloc[0]} in {df["season"].iloc[0]}")
+    ax.set_xlabel("Stages",fontsize=LABEL_FONT_SIZE)
+    ax.set_ylabel("Goals",fontsize=LABEL_FONT_SIZE)
+    ax.set_title(f"Goals Scored vs Goals Conceded by {df["team_name"].iloc[0]} in {df["season"].iloc[0]}",
+                fontsize=TITLE_FONT_SIZE,
+                fontweight=TITLE_FONT_WEIGHT
+    )
 
     ax.set_xticks(df["stage"].iloc[::2])
     ax.legend()
-    ax.grid(axis="both", linestyle="--", alpha=0.5)
+    applyChartGrid(ax)
 
     fig.tight_layout()
     return fig
 
 def createScatterChart(df,metric1,metric2):
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig , ax = createFigure(figsize=(12,6))
 
     ax.scatter(
         df[metric1],
@@ -210,19 +183,38 @@ def createScatterChart(df,metric1,metric2):
         alpha=0.8,
         edgecolors="black"
     )
-
+    mean_x = df[metric1].mean()
+    mean_y = df[metric2].mean()
     xlabel = METRIC_REGISTRY[metric1]["label"]
     ylabel = METRIC_REGISTRY[metric2]["label"]
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.axvline(
+    mean_x,
+    color="red",
+    linestyle="--",
+    linewidth=2,
+    label=f" Avg {xlabel}"
+)
+
+    ax.axhline(
+    mean_y,
+    color="blue",
+    linestyle="--",
+    linewidth=2,
+    label=f" Avg {ylabel}"
+)
+    ax.set_xlabel(xlabel,fontsize=LABEL_FONT_SIZE)
+    ax.set_ylabel(ylabel,fontsize=LABEL_FONT_SIZE)
     title =(f"{METRIC_REGISTRY[metric1]["label"]} vs "
-            f"{METRIC_REGISTRY[metric2]["label"]}")
+            f"{METRIC_REGISTRY[metric2]["label"]}"
+            )
     ax.set_title(
-        title
+        title,
+        fontsize=TITLE_FONT_SIZE,
+        fontweight=TITLE_FONT_WEIGHT
     )
 
-    ax.grid(True, linestyle="--", alpha=0.8)
+    applyChartGrid(ax)
     for _, row in df.iterrows():
 
         ax.annotate(
@@ -233,11 +225,42 @@ def createScatterChart(df,metric1,metric2):
 
         fontsize=8
     )
+
+    ax.legend()
     fig.tight_layout()
 
     return fig
 
+def createHistogramChart(df,metric,bins=10):
 
-fig = createScatterChart(final_df,"avg_goals","win_pct")
-plt.show()
+    fig , ax = createFigure()
+
+    mean_value = df[metric].mean()
+
+    ax.hist(
+       df[metric],
+        bins=bins,
+        edgecolor="black",
+    linewidth=1,
+    alpha=0.8
+        )
+    ax.axvline(
+    mean_value,
+    color="red",
+    linestyle="--",
+    linewidth=2,
+    label=f"Mean = {mean_value:.2f}"
+)
+    
+    ax.set_title(f"Distribution of {METRIC_REGISTRY[metric]['label']}",
+                fontsize=TITLE_FONT_SIZE,
+                fontweight=TITLE_FONT_WEIGHT)
+    ax.set_xlabel(METRIC_REGISTRY[metric]["label"],fontsize=LABEL_FONT_SIZE)
+    ax.set_ylabel("Number of Teams",fontsize=LABEL_FONT_SIZE)
+    ax.legend()
+    applyChartGrid(ax,"y")
+
+    fig.tight_layout()
+    return fig
+
 

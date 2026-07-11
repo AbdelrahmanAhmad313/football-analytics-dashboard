@@ -1,7 +1,6 @@
 import pandas as pd
 
 
-
 def getTopAttackingTeams(team_matches):
 
 
@@ -14,16 +13,16 @@ def getTopAttackingTeams(team_matches):
         avg_goals=("goals_scored","mean")
     )
     .query("matches_played >= 100 ")
-    .sort_values("goals_scored",ascending=False)
+    # .sort_values("goals_scored",ascending=False)
     .reset_index()
 )
     top_attacking_team_df["avg_goals"] =(top_attacking_team_df["avg_goals"].round(2))
 
     return top_attacking_team_df
 
-def getTopAttackingTeamsByAvgGoals(top_attacking):
+# def getTopAttackingTeamsByAvgGoals(top_attacking):
 
-    return top_attacking.sort_values("avg_goals",ascending= False)
+#     return top_attacking.sort_values("avg_goals",ascending= False)
 
 def getTopDefensiveTeams(team_matches):
 
@@ -37,7 +36,7 @@ def getTopDefensiveTeams(team_matches):
                               avg_goals_conceded=("goals_conceded","mean")
                           )
                           .query("matches_played >= 100")
-                          .sort_values("goals_conceded",ascending=True)
+                        #   .sort_values("goals_conceded",ascending=True)
                         #   .head(10)
                           .reset_index()
                         
@@ -46,9 +45,9 @@ def getTopDefensiveTeams(team_matches):
     top_defensive_team_df["avg_goals_conceded"] =(top_defensive_team_df["avg_goals_conceded"].round(2))
     return top_defensive_team_df
 
-def getTopDefensiveTeamsByAvgGoals(top_defensive):
+# def getTopDefensiveTeamsByAvgGoals(top_defensive):
 
-    return top_defensive.sort_values("avg_goals_conceded",ascending=True)
+#     return top_defensive.sort_values("avg_goals_conceded",ascending=True)
 
 
 def getTopTeamsByGoalDiff(attacking_teams,defensive_teams):
@@ -65,7 +64,7 @@ def getTopTeamsByGoalDiff(attacking_teams,defensive_teams):
     ).round(2)
 
     top_teams=(top_teams
-    .sort_values("avg_goals_diff",ascending=False)
+    # .sort_values("avg_goals_diff",ascending=False)
     .reset_index(drop=True)
 )
     
@@ -85,6 +84,11 @@ def getTopTeamsByGoalDiff(attacking_teams,defensive_teams):
 
     return top_teams
 
+def getGoalDifference(team_matches):
+    attacking = getTopAttackingTeams(team_matches)
+    defensive = getTopDefensiveTeams(team_matches)
+
+    return getTopTeamsByGoalDiff(attacking, defensive)
 
 def getVenuePPG(team_matches,venue,team_id=None,season=None):
    
@@ -120,10 +124,7 @@ def getVenuePPG(team_matches,venue,team_id=None,season=None):
     elif season is not None:
         return team_matches[team_matches["season"]==season]
     
-    
     return ppg_df
-
-
 
 def getMostConsistentTeams(home_ppg_df,away_ppg_df):
 
@@ -139,11 +140,19 @@ def getMostConsistentTeams(home_ppg_df,away_ppg_df):
     teams_ppg["consistency_gap"]=abs(teams_ppg["home_ppg"]-teams_ppg["away_ppg"])
     teams_ppg=(teams_ppg
                .query("matches_played > 100")
-                .sort_values("consistency_gap", ascending=True)
+                # .sort_values("consistency_gap", ascending=True)
                )
             
     teams_ppg= teams_ppg[["team_api_id","home_ppg","away_ppg","consistency_gap","matches_played"]]
     return teams_ppg
+
+def getConsistentTeams(team_matches):
+    home_df= getVenuePPG(team_matches,"home")
+    away_df=getVenuePPG(team_matches,"away")
+    
+    
+    return getMostConsistentTeams(home_df,away_df)
+
 
 def getCleanSheets(team_matches):
     team_clean_sheets = (
@@ -164,10 +173,8 @@ def getCleanSheets(team_matches):
 
     team_clean_sheets = team_clean_sheets.assign(
     clean_sheets_pct=pct
-).sort_values(
-    "clean_sheets_pct",
-    ascending=False
 ).reset_index()
+    # .sort_values(    "clean_sheets_pct",ascending=False)
 
     team_clean_sheets["clean_sheets_%"] = (
     team_clean_sheets["clean_sheets_pct"].astype(str) + "%"
@@ -203,10 +210,11 @@ def getOutcomePercentage(team_matches,key):
 
     team_pct = team_pct.assign(
     outcome_pct=pct
-).sort_values(
-    "outcome_pct",
-    ascending=ascending
 ).reset_index()
+#     .sort_values(
+#     "outcome_pct",
+#     ascending=ascending
+# )
 
     team_pct[wanted_pct] = (
     team_pct["outcome_pct"].astype(str) + "%"
@@ -225,9 +233,21 @@ def getGoalDifferenceByTeamInSeason(team_matches):
     
     return team_matches.sort_values("stage")[["team_api_id","goal_diff","stage"]]
 
+def calculateGoalStandardDeviation(team_matches):
+    goal_std = (
+        team_matches
+        .groupby("team_api_id", as_index=False)
+        .agg(goal_std=("goals_scored", "std"),
+             matches_played=("team_api_id", "size")
+        )
+        .query("matches_played > 100")
+    )
+    goal_std["goal_std"]=goal_std["goal_std"].round(2)
+    return goal_std
 
 METRIC_REGISTRY = {
-        "avg_goals": {
+
+    "avg_goals": {
         "function": getTopAttackingTeams,
         "column": "avg_goals",
         "label":"Average Goals Scored",
@@ -256,12 +276,14 @@ METRIC_REGISTRY = {
         "label":"Away Points Per Game",
         "higher_is_better": True,
     },
+
     "avg_goals_conceded":{
         "function": getTopDefensiveTeams,
         "column": "avg_goals_conceded",
         "label":"Average Goals Conceded",
         "higher_is_better": False,
         },
+
     "goals_conceded":{
         "function": getTopDefensiveTeams,
         "column": "goals_conceded",
@@ -275,13 +297,12 @@ METRIC_REGISTRY = {
         "label":"Clean Sheets Percentage",
         "higher_is_better": True,},
 
-
     "win_pct": {
         "function": getOutcomePercentage,
-                "kwargs": {
-                    "key": "win"
-                    },
-                "column":"win_pct",
+        "kwargs": {
+                "key": "win"
+                },
+        "column":"win_pct",
         "label":"Win Percentage",
         "higher_is_better": True,},
 
@@ -303,10 +324,49 @@ METRIC_REGISTRY = {
         "label":"Loss Percentage",
         "higher_is_better": False,},
 
+    "goal_std":{
+        "function": calculateGoalStandardDeviation,
+        "column": "goal_std",
+        "label":"Goals Scoring Standard Deviation",
+        "higher_is_better": False,
+    },
+
+    "goal_diff":{
+        "function": getGoalDifference,
+        "column":"goal_diff",
+        "label":"Goal Difference",
+        "higher_is_better":True
+    },
+
+    "consistent_teams":{
+        "function":getConsistentTeams,
+        "column":"consistency_gap",
+        "label":"Consistant Teams",
+        "higher_is_better":False
+    },
     
+    "home_clean_sheet_pct":{
+        "function": getVenueCleanSheetPct,
+        "kwargs":{
+            "venue":"home"
+        },
+        "column":"clean_sheet_pct",
+        "label":"Home Clean Sheet Percentage",
+        "higher_is_better":True
+    },
+
+    "away_clean_sheet_pct":{
+        "function": getVenueCleanSheetPct,
+        "kwargs":{
+            "venue":"away"
+        },
+        "column":"clean_sheet_pct",
+        "label":"Away Clean Sheet Percentage",
+        "higher_is_better":True  
+    },
 }
 
-def getTeamMetrics(team_matches,metrics):
+def getTeamMetrics(team_matches,metrics,sort_by=None):
     
     
     execution_plan={}
@@ -354,6 +414,14 @@ def getTeamMetrics(team_matches,metrics):
             on="team_api_id"
         )
         
-    
+    if sort_by is not None:
+        final_df = _sortMetric(
+            final_df,
+            sort_by
+        )
+
     return final_df
 
+def _sortMetric(df, metric):
+    column = METRIC_REGISTRY[metric]["column"]
+    return df.sort_values(column,ascending= not METRIC_REGISTRY[metric]["higher_is_better"]) 
