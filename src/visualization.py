@@ -1,35 +1,64 @@
 from chart_utils import *
-from analytics import METRIC_REGISTRY
+from analytics.analytics import METRIC_REGISTRY
 from style import *
+from transforms import formatValue
+import numpy as np
 
 
 
-
-def createTopAttackingTeamsChart(df):
+def createHorizontalBarChart(df,metric,top_n=None):
 
     fig , ax = createFigure()
+    if metric=="correlation":
+        bary=df["metric_name"]
+        xlabel="Pearson Correlation"
+        title="Correlation of Engineered Metrics with Team Points"
+    else:
+        bary=df["team_name"]
+        xlabel=METRIC_REGISTRY[metric]["label"]
+        title=f"top "
+        if top_n is not None:
+            title+=f"{top_n} "
+        title+=f"Teams by {METRIC_REGISTRY[metric]["label"]}"
 
-
-    BAR_OFFSET = 0.02
+    
+    BAR_OFFSET = 0.01
     bars = ax.barh(
-    df["team_name"],
-    df["avg_goals"]
+    bary,
+    df[metric],
 )
 
-    ax.set_xlabel("Average Goals per Match",fontsize=LABEL_FONT_SIZE)
-    ax.set_title("Top 10 Teams by Average Goals per Match",
+   
+    
+    ax.set_xlabel(xlabel,fontsize=LABEL_FONT_SIZE)
+    ax.set_title(title,
                     fontsize=TITLE_FONT_SIZE,
                     fontweight=TITLE_FONT_WEIGHT
                     )
 
     for bar in bars:
-        width = bar.get_width()
+        if bar.get_width() >= 0:
+            bar.set_color("blue")
+            ha = "left"
+        else:
+            bar.set_color("red")
+            ha = "right"
 
+        width = bar.get_width()
+        
         ax.text(
             width +BAR_OFFSET,                 
            bar.get_y() + bar.get_height()/2,
-            f"{width:.2f}",
-            va="center"
+            formatValue("avg_goals", width),
+            va="center",
+            ha=ha
+        )
+   
+    ax.axvline(
+            0,
+            color="black",
+            linestyle="--",
+            alpha=0.7
         )
 
     ax.invert_yaxis()
@@ -38,6 +67,7 @@ def createTopAttackingTeamsChart(df):
 
     fig.tight_layout()
     return fig
+
 
 def createTeamGoalDifferenceChart(df,team_name):
     fig , ax = createFigure()
@@ -173,7 +203,7 @@ def createGoalsChart(df):
     fig.tight_layout()
     return fig
 
-def createScatterChart(df,metric1,metric2):
+def createScatterChart(df,metric1,metric2,corr,insight):
     fig , ax = createFigure(figsize=(12,6))
 
     ax.scatter(
@@ -207,6 +237,8 @@ def createScatterChart(df,metric1,metric2):
     ax.set_ylabel(ylabel,fontsize=LABEL_FONT_SIZE)
     title =(f"{METRIC_REGISTRY[metric1]["label"]} vs "
             f"{METRIC_REGISTRY[metric2]["label"]}"
+            f"\n Pearson Correlation: {corr}"
+            f"\n {insight}"
             )
     ax.set_title(
         title,
@@ -263,4 +295,42 @@ def createHistogramChart(df,metric,bins=10):
     fig.tight_layout()
     return fig
 
+def createHeatMapChart(corr_matrix):
 
+    fig , ax= createFigure()
+    mask = np.triu(np.ones(corr_matrix.shape, dtype=bool), k=1)
+
+    corr_matrix = corr_matrix.mask(mask)
+
+    im=ax.imshow(
+        corr_matrix,
+    cmap="coolwarm",
+    vmin=-1,
+    vmax=1
+    )
+    ax.set_xticks(range(len(corr_matrix.columns)))
+    ax.set_yticks(range(len(corr_matrix.index)))
+
+    ax.set_xticklabels(
+    corr_matrix.columns,
+    rotation=45,
+    ha="right"
+)
+
+    ax.set_yticklabels(corr_matrix.index)
+    fig.colorbar(
+        im,
+        ax=ax,
+        label="Pearson Correlation"
+    )
+    
+
+    ax.set_title(
+    "Correlation Matrix of Engineered Metrics",
+    fontsize=TITLE_FONT_SIZE,
+    fontweight=TITLE_FONT_WEIGHT
+)
+    fig.tight_layout()
+
+
+    return fig

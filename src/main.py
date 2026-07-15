@@ -1,7 +1,7 @@
 from data_loader import *
 from cleaner import buildTeamsMatches
-from analytics import *
-from transforms import addTeamNames
+from analytics.analytics import *
+from transforms import addTeamNames , formatDataFrame, filterTeamMatches
 from quality import runQualityChecks
 
 
@@ -36,9 +36,9 @@ def main():
     1: ("Top Attacking Teams","avg_goals"),
     2: ("Top Defensive Teams", "goals_conceded"),
     3:("Top Teams By Goal Difference","goal_diff"),
-    4:("Home Win Percentage","home_ppg"),
-    5:("Away Win Percentage","away_ppg"),
-    6:("Most Consistent Team","consistent_teams"),
+    4:("Home Point Per Game","home_ppg"),
+    5:("Away Point Per","away_ppg"),
+    6:("Most Consistent Team","consistency_gap"),
     7: ("Win Percentage", "win_pct"),
     8: ("Draw Percentage","draw_pct"),
     9: ("Loss Percentage", "loss_pct"),
@@ -46,10 +46,13 @@ def main():
     11:("Home Clean Sheets Percentage","home_clean_sheet_pct"),
     12:("Away Clean Sheets Percentage", "away_clean_sheet_pct"),
     13:("Teams Goal Consistency", "goal_std"),
+    14:("Teams Points","teams_points"),
     0:("Exit", exit)
 }
     
     while True:
+        chosen_season=None#TODO make choices for seasons
+        chosen_team=None #TODO make team names format the right one e.g.(real madrid -> Real Madrid CF)
         print("=== Football Analytics Dashboard ===")
         for num, (name, _) in menu.items():
             print(f"{num}. {name}")
@@ -60,15 +63,16 @@ def main():
             break
 
         top_n = int(input("Show top N teams: "))
-        metric = menu[choice][1]
-        name, func = menu[choice]
+        name, metric = menu[choice]
+        filtered_df=filterTeamMatches(team_matches,chosen_team,chosen_season)
         result = getTeamMetrics(
-        team_matches,
+        filtered_df,
         [metric],       
         sort_by=metric
         )
         result = result.head(top_n)
         result = addTeamNames(result, teams_df)
+        result = formatDataFrame(result, metric)
         
         print(f"\n------{name}------\n")
         print(result)

@@ -20,9 +20,9 @@ def getTopAttackingTeams(team_matches):
 
     return top_attacking_team_df
 
-# def getTopAttackingTeamsByAvgGoals(top_attacking):
+def getTopAttackingTeamsByAvgGoals(top_attacking):
 
-#     return top_attacking.sort_values("avg_goals",ascending= False)
+    return top_attacking.sort_values("avg_goals",ascending= False)
 
 def getTopDefensiveTeams(team_matches):
 
@@ -45,9 +45,9 @@ def getTopDefensiveTeams(team_matches):
     top_defensive_team_df["avg_goals_conceded"] =(top_defensive_team_df["avg_goals_conceded"].round(2))
     return top_defensive_team_df
 
-# def getTopDefensiveTeamsByAvgGoals(top_defensive):
+def getTopDefensiveTeamsByAvgGoals(top_defensive):
 
-#     return top_defensive.sort_values("avg_goals_conceded",ascending=True)
+    return top_defensive.sort_values("avg_goals_conceded",ascending=True)
 
 
 def getTopTeamsByGoalDiff(attacking_teams,defensive_teams):
@@ -90,7 +90,7 @@ def getGoalDifference(team_matches):
 
     return getTopTeamsByGoalDiff(attacking, defensive)
 
-def getVenuePPG(team_matches,venue,team_id=None,season=None):
+def getVenuePPG(team_matches,venue):
    
 
     matches_df = team_matches[
@@ -113,20 +113,25 @@ def getVenuePPG(team_matches,venue,team_id=None,season=None):
     )
     ppg_df[ppg]=(ppg_df[points]/ppg_df[matches]).round(2)
     ppg_df=(ppg_df.sort_values(ppg,ascending=False))
-
-    if team_id is not None and season is not None:
-        return(
-            team_matches[team_matches["team_api_id"]==team_id]&
-               team_matches[team_matches["season"]==season]
-               )
-    elif team_id is not None:
-        return team_matches[team_matches["team_api_id"]==team_id]
-    elif season is not None:
-        return team_matches[team_matches["season"]==season]
-    
     return ppg_df
 
-def getMostConsistentTeams(home_ppg_df,away_ppg_df):
+def getTeamsPoints(team_mathces):
+    matches_df=team_mathces.copy()
+
+    points_df=(
+        matches_df
+        .groupby("team_api_id")
+        .agg(
+            matches_played=("team_api_id", "size"),
+            teams_points=("points", "sum"),
+            
+        )
+        .reset_index()
+    )
+    
+    return points_df
+
+def getVenueMostConsistentTeams(home_ppg_df,away_ppg_df):
 
     teams_ppg=pd.merge(
         home_ppg_df,
@@ -140,19 +145,17 @@ def getMostConsistentTeams(home_ppg_df,away_ppg_df):
     teams_ppg["consistency_gap"]=abs(teams_ppg["home_ppg"]-teams_ppg["away_ppg"])
     teams_ppg=(teams_ppg
                .query("matches_played > 100")
-                # .sort_values("consistency_gap", ascending=True)
                )
             
     teams_ppg= teams_ppg[["team_api_id","home_ppg","away_ppg","consistency_gap","matches_played"]]
     return teams_ppg
 
-def getConsistentTeams(team_matches):
+def getVenueConsistentTeams(team_matches):
     home_df= getVenuePPG(team_matches,"home")
     away_df=getVenuePPG(team_matches,"away")
     
     
-    return getMostConsistentTeams(home_df,away_df)
-
+    return getVenueMostConsistentTeams(home_df,away_df)
 
 def getCleanSheets(team_matches):
     team_clean_sheets = (
@@ -165,69 +168,67 @@ def getCleanSheets(team_matches):
     .query("matches_played > 100")
 )
 
-    pct = (
+    team_clean_sheets["clean_sheet_pct"] = (
     team_clean_sheets["clean_sheets"]
     / team_clean_sheets["matches_played"]
     * 100
 ).round(1)
 
-    team_clean_sheets = team_clean_sheets.assign(
-    clean_sheets_pct=pct
-).reset_index()
-    # .sort_values(    "clean_sheets_pct",ascending=False)
+#     team_clean_sheets = team_clean_sheets.assign(
+#     clean_sheets_pct=pct
+# ).reset_index()
+#     # .sort_values(    "clean_sheets_pct",ascending=False)
 
-    team_clean_sheets["clean_sheets_%"] = (
-    team_clean_sheets["clean_sheets_pct"].astype(str) + "%"
-)
+#     team_clean_sheets["clean_sheets_%"] = (
+#     team_clean_sheets["clean_sheets_pct"].astype(str) + "%"
+# )
 
-    return team_clean_sheets.drop(columns="clean_sheets_pct")
+    return team_clean_sheets.reset_index()
 
 def getOutcomePercentage(team_matches,key):
-    matches_wanted=f"matches_{key}"
-    wanted_pct=f"{key}_pct"
-    ascending = key != "win"
-    past_wanted={
-        "win":"won",
-        "draw":"drawn",
-        "loss":"lost"
+
+    matches_wanted = f"matches_{key}"
+    wanted_pct = f"{key}_pct"
+
+    past_wanted = {
+        "win": "won",
+        "draw": "drawn",
+        "loss": "lost"
     }
-    team_pct=(
+
+    team_pct = (
         team_matches
         .groupby("team_api_id")
         .agg(
             **{
-            matches_wanted: (past_wanted[key], "sum")
-        },
-            matches_played = ("team_api_id","size")
+                matches_wanted: (past_wanted[key], "sum")
+            },
+            matches_played=("team_api_id", "size")
         )
         .query("matches_played > 100")
     )
-    pct = (
-    team_pct[matches_wanted]
-    / team_pct["matches_played"]
-    * 100
-).round(1)
-
-    team_pct = team_pct.assign(
-    outcome_pct=pct
-).reset_index()
-#     .sort_values(
-#     "outcome_pct",
-#     ascending=ascending
-# )
 
     team_pct[wanted_pct] = (
-    team_pct["outcome_pct"].astype(str) + "%"
-)
+        team_pct[matches_wanted]
+        / team_pct["matches_played"]
+        * 100
+    ).round(1)
 
-    return team_pct.drop(columns="outcome_pct")
+    return team_pct.reset_index()
 
 def getVenueCleanSheetPct(team_matches,venue):
-    team_clean_sheets=team_matches[
-    team_matches["venue"] == venue
+    team_clean_sheets = team_matches[
+        team_matches["venue"] == venue
     ].copy()
-    clean_sheets= getCleanSheets(team_clean_sheets)
-    return clean_sheets
+
+    venue_clean_sheet_df = getCleanSheets(team_clean_sheets)
+
+    venue_clean_sheet_pct = f"{venue}_clean_sheet_pct"
+
+    venue_clean_sheet_df = venue_clean_sheet_df.rename(
+        columns={"clean_sheet_pct": venue_clean_sheet_pct}
+    )
+    return venue_clean_sheet_df
 
 def getGoalDifferenceByTeamInSeason(team_matches):
     
@@ -252,6 +253,7 @@ METRIC_REGISTRY = {
         "column": "avg_goals",
         "label":"Average Goals Scored",
         "higher_is_better": True,
+        "format": "float",
     },
 
     "goals_scored": {
@@ -259,6 +261,7 @@ METRIC_REGISTRY = {
         "column": "goals_scored",
         "label":"Goals Scored",
         "higher_is_better": True,
+        "format": "integer",
     },
 
     "home_ppg": {
@@ -267,6 +270,7 @@ METRIC_REGISTRY = {
         "kwargs": {"venue": "home"},
         "label":"Home Points Per Game",
         "higher_is_better": True,
+        "format": "float",
     },
 
     "away_ppg": {
@@ -275,6 +279,7 @@ METRIC_REGISTRY = {
         "kwargs": {"venue": "away"},
         "label":"Away Points Per Game",
         "higher_is_better": True,
+        "format": "float",
     },
 
     "avg_goals_conceded":{
@@ -282,6 +287,7 @@ METRIC_REGISTRY = {
         "column": "avg_goals_conceded",
         "label":"Average Goals Conceded",
         "higher_is_better": False,
+        "format": "float",
         },
 
     "goals_conceded":{
@@ -289,13 +295,15 @@ METRIC_REGISTRY = {
         "column": "goals_conceded",
         "label":"Goals Conceded",
         "higher_is_better": False,
+        "format": "integer",
         },
 
     "clean_sheet_pct":{
         "function": getCleanSheets,
         "column":"clean_sheet_pct",
         "label":"Clean Sheets Percentage",
-        "higher_is_better": True,},
+        "higher_is_better": True,
+        "format": "percent",},
 
     "win_pct": {
         "function": getOutcomePercentage,
@@ -304,7 +312,8 @@ METRIC_REGISTRY = {
                 },
         "column":"win_pct",
         "label":"Win Percentage",
-        "higher_is_better": True,},
+        "higher_is_better": True,
+        "format": "percent",},
 
     "draw_pct": {
         "function": getOutcomePercentage,
@@ -313,7 +322,8 @@ METRIC_REGISTRY = {
                         },
                 "column":"draw_pct",
         "label":"Draw Percentage",
-        "higher_is_better": True,},
+        "higher_is_better": True,
+        "format": "percent",},
 
     "loss_pct": {
         "function": getOutcomePercentage,
@@ -322,27 +332,30 @@ METRIC_REGISTRY = {
                     },
                 "column":"loss_pct",
         "label":"Loss Percentage",
-        "higher_is_better": False,},
+        "higher_is_better": False,
+        "format": "percent",},
 
     "goal_std":{
         "function": calculateGoalStandardDeviation,
         "column": "goal_std",
         "label":"Goals Scoring Standard Deviation",
         "higher_is_better": False,
+        "format": "float",
     },
 
-    "goal_diff":{
+    "goals_diff":{
         "function": getGoalDifference,
-        "column":"goal_diff",
+        "column":"goals_diff",
         "label":"Goal Difference",
-        "higher_is_better":True
+        "higher_is_better":True,
+        "format": "integer",
     },
 
-    "consistent_teams":{
-        "function":getConsistentTeams,
+    "consistency_gap":{
+        "function":getVenueConsistentTeams,
         "column":"consistency_gap",
-        "label":"Consistant Teams",
-        "higher_is_better":False
+        "label":"Consistent Teams",
+        "higher_is_better":True
     },
     
     "home_clean_sheet_pct":{
@@ -350,9 +363,10 @@ METRIC_REGISTRY = {
         "kwargs":{
             "venue":"home"
         },
-        "column":"clean_sheet_pct",
+        "column":"home_clean_sheet_pct",
         "label":"Home Clean Sheet Percentage",
-        "higher_is_better":True
+        "higher_is_better":True,
+        "format": "percent",
     },
 
     "away_clean_sheet_pct":{
@@ -360,10 +374,20 @@ METRIC_REGISTRY = {
         "kwargs":{
             "venue":"away"
         },
-        "column":"clean_sheet_pct",
+        "column":"away_clean_sheet_pct",
         "label":"Away Clean Sheet Percentage",
-        "higher_is_better":True  
+        "higher_is_better":True,
+        "format": "percent",
     },
+
+    "teams_points":{
+        "function":getTeamsPoints,
+        "column":"teams_points",
+        "label": "Teams Points",
+        "higher_is_better":True,
+        "format":"integer"
+    },
+
 }
 
 def getTeamMetrics(team_matches,metrics,sort_by=None):
