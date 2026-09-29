@@ -49,7 +49,7 @@ def createHorizontalBarChart(df,metric,top_n=None):
         ax.text(
             width +BAR_OFFSET,                 
            bar.get_y() + bar.get_height()/2,
-            formatValue("avg_goals", width),
+            formatValue(metric, width),
             va="center",
             ha=ha
         )
@@ -81,7 +81,7 @@ def createTeamGoalDifferenceChart(df,team_name):
     lowest = df.loc[df["goal_diff"].idxmin()]
 
     ax.annotate(
-    f"  Highest (+{highest["goal_diff"]})",
+    f"  Highest (+{highest['goal_diff']})",
     xy=(highest["stage"], highest["goal_diff"]),
     xytext=(
         highest["stage"] + 2,
@@ -100,7 +100,7 @@ def createTeamGoalDifferenceChart(df,team_name):
 
 
     ax.annotate(
-    f"  Lowest ({lowest["goal_diff"]})",
+    f"  Lowest ({lowest['goal_diff']})",
     xy=(lowest["stage"], lowest["goal_diff"]),
     xytext=(
         lowest["stage"] + 2,
@@ -191,7 +191,7 @@ def createGoalsChart(df):
 
     ax.set_xlabel("Stages",fontsize=LABEL_FONT_SIZE)
     ax.set_ylabel("Goals",fontsize=LABEL_FONT_SIZE)
-    ax.set_title(f"Goals Scored vs Goals Conceded by {df["team_name"].iloc[0]} in {df["season"].iloc[0]}",
+    ax.set_title(f"Goals Scored vs Goals Conceded by {df['team_name'].iloc[0]} in {df["season"].iloc[0]}",
                 fontsize=TITLE_FONT_SIZE,
                 fontweight=TITLE_FONT_WEIGHT
     )

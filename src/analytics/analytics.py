@@ -115,8 +115,8 @@ def getVenuePPG(team_matches,venue):
     ppg_df=(ppg_df.sort_values(ppg,ascending=False))
     return ppg_df
 
-def getTeamsPoints(team_mathces):
-    matches_df=team_mathces.copy()
+def getTeamsPoints(team_matches):
+    matches_df=team_matches.copy()
 
     points_df=(
         matches_df
@@ -355,7 +355,7 @@ METRIC_REGISTRY = {
         "function":getVenueConsistentTeams,
         "column":"consistency_gap",
         "label":"Consistent Teams",
-        "higher_is_better":True
+        "higher_is_better":False
     },
     
     "home_clean_sheet_pct":{

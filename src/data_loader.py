@@ -32,4 +32,3 @@ FROM Match
     match_df =pd.read_sql_query(match_query,conn)
 
     return match_df
-
